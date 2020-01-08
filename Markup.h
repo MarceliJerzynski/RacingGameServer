@@ -1,27 +1,28 @@
 #ifndef MARKUP_H
 #define MARKUP_H
 
-#include "Object.h"
+//#include "Object.h"
 #include <iostream>
 #include <vector>
+#include <glm/glm.hpp>
 using namespace std;
-
+using namespace glm;
 const int number_of_laps = 3;
 class Markup
 {
     public:
         Markup();
-        void loadMarkup(float scale);
-        Object *getArrow();
+        //void loadMarkup(float scale);
+        //Object *getArrow();
         void touched();
         void changePosition( vec3 aposition);
         vec3 getPosition();
         float getRadius();
-        unsigned int getIndex();
+        //unsigned int getIndex();
     protected:
 
     private:
-        Object *arrow;
+        //Object *arrow;
         float scaling;
         float radius;
         vec3 position;

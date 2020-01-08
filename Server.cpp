@@ -1,3 +1,6 @@
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_SWIZZLE
+
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
@@ -7,16 +10,22 @@
 #include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <time.h>
 #include <pthread.h>
 #include <iostream>
 #include <cstring>
-#include "glm/glm.hpp"
+
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "Car.h"
 using namespace std;
 using namespace glm;
-#define SERVER_PORT 1132
+#define SERVER_PORT 50027
 #define QUEUE_SIZE 5
 const int AMOUNT_OF_CHAR_IN_MSG = 256;
 const int AMOUNT_OF_PLAYERS = 2;
@@ -31,12 +40,12 @@ bool turnRight = false;
 bool goPlayer = false;
 bool backPlayer = false;
 
-
+//sprawdzenie wiadomosci od klienta
 void checkMessage(char *msg)
 {
     string text(msg);
     int position = text.find("turnLeft");
-    if (position == strlen(msg)) 
+    if (position==string::npos) 
     {
         turnLeft = false;
     }
@@ -46,7 +55,7 @@ void checkMessage(char *msg)
     }
 
      position = text.find("turnRight");
-    if (position == strlen(msg)) 
+    if (position==string::npos) 
     {
         turnRight = false;
     }
@@ -56,7 +65,7 @@ void checkMessage(char *msg)
     }
 
      position = text.find("goPlayer");
-    if (position == strlen(msg)) 
+    if (position==string::npos) 
     {
         goPlayer = false;
     }
@@ -66,7 +75,7 @@ void checkMessage(char *msg)
     }
 
      position = text.find("backPlayer");
-    if (position == strlen(msg)) 
+    if (position==string::npos) 
     {
         backPlayer = false;
     }
@@ -74,9 +83,14 @@ void checkMessage(char *msg)
     {
         backPlayer = true;
     }
+    cout<<"turnLeft: "<<turnLeft<<endl;
+    cout<<"turnRight: "<<turnRight<<endl;
+    cout<<"goPlayer: "<<goPlayer<<endl;
+    cout<<"backPlayer: "<<backPlayer<<endl;
 }
 
-
+//skrecanie
+//wymaga isMoving, turnLeft, turnRight
 void turning(Car &player)
 {
 
@@ -105,6 +119,8 @@ void turning(Car &player)
     }
 }
 
+//skrecanie kol
+//wymaga turnWheel, getWheelRotation
 void turningWheels(Car &player)
 {
     if (turnLeft)
@@ -128,6 +144,8 @@ void turningWheels(Car &player)
         }
 }
 
+//poruszanie przod, tyl
+//wymaga move
 void going(Car &player)
 {
     if (goPlayer)       //jesli trzyma W
@@ -143,6 +161,7 @@ void going(Car &player)
     }
 }
 
+//poruszanie graczem
 void moving(Car &player)
 {
     turning(player);
@@ -150,7 +169,9 @@ void moving(Car &player)
     going(player);
 }
 
-const char * logic(Car &player) 
+//logika gry, zwraca komunikat do wyslania
+//wymaga checkPointReached, getPosition, getWheelRotation, getRotation
+char * logic(Car &player) 
 {
     string msg;
     moving(player);
@@ -164,13 +185,10 @@ const char * logic(Car &player)
     msg+= "position="+to_string(position.x);
     msg+= ","+to_string(position.y);
     msg+= ","+to_string(position.z);
-    const char * returningValue = new char[AMOUNT_OF_CHAR_IN_MSG];
-    returningValue = msg.c_str();
+    char * returningValue = &msg[0];
+    cout<<"Wychodze z logic, zwracam: "<<returningValue<<endl;
     return returningValue;
 }
-
-
-
 
 //jak nazwa wskazuje
 char * getMessage(int fd)
@@ -179,44 +197,47 @@ char * getMessage(int fd)
     char oneChar;
     int i = 0;
     read(fd, &oneChar, 1);
-    msg[i++] = oneChar;
     while (oneChar != '\n') {
+        msg[i++] = oneChar;
         read(fd, &oneChar, 1);
-        msg[i] = oneChar;
-        i++;
     }
     return msg;
     
 }
 
-
-
 //funkcja opisującą zachowanie wątku - musi przyjmować argument typu (void *) i zwracać (void *)
 void *ThreadBehavior(void *t_data)
 {
+    cout<<"Wszedlem do watku!"<<endl;
     pthread_detach(pthread_self());
     struct thread_data_t *th_data = (struct thread_data_t*)t_data;
-    int clients_sockets[AMOUNT_OF_PLAYERS];
-    for(int i = 0; i < AMOUNT_OF_PLAYERS; i++)
+    int clients_sockets[AMOUNT_OF_PLAYERS]; //tablica na sockety klientow
+
+    for(int i = 0; i < AMOUNT_OF_PLAYERS; i++)  
     {
-        clients_sockets[i]= th_data->clients_sockets[i]; 
+        clients_sockets[i]= th_data->clients_sockets[i]; //wczytanie danych z argumentow do ladniejszej postaci 
     }
-    char *msg[AMOUNT_OF_PLAYERS];
+
+    char *msg[AMOUNT_OF_PLAYERS];   //tablica wiadomosci do klientow
     
     for(int i = 0; i < AMOUNT_OF_PLAYERS; i++)
     {
-        
-        msg[i] = new char[AMOUNT_OF_CHAR_IN_MSG];
+        msg[i] = new char[AMOUNT_OF_CHAR_IN_MSG];   //alokacja pamieci
     }
 
-    Car car[2];
+    //Car car[AMOUNT_OF_PLAYERS]; //tablica samochodow graczy
+    Car car[AMOUNT_OF_PLAYERS];
+    cout<<"Autka zostaly utworzone"<<endl;
+    char *message = new char[AMOUNT_OF_CHAR_IN_MSG];
+    char slashn = '\n';
     //------------------------------------------------------------------------------
     while(1)
     {
         for(int i = 0; i < AMOUNT_OF_PLAYERS; i++)  //pobierz wszystkie wiadomosci od graczy
         {
+            cout<<"Zaraz bede odbierac!"<<endl;
             msg[i] = getMessage(clients_sockets[i]);
-            cout<<"Odczytalem wiadomosc: "<<msg[i]<<endl;
+            cout<<"Odebralem: "<<msg[i]<<endl;
         }
         
 
@@ -224,11 +245,28 @@ void *ThreadBehavior(void *t_data)
         {
             checkMessage(msg[i]);   //uzupelnij zmienne booloweskie
 
-            for(int j = 0; j< AMOUNT_OF_PLAYERS; j++)   //dla kazdeego gracza
+            for(int j = 0; j< AMOUNT_OF_PLAYERS; j++)   //wyslij j-temu graczowi info o graczu i-tym
             {
-                const char * message = logic(car[i]);   //wykonaj poruszanie sie gracza
-                write(clients_sockets[j], message, strlen(message));
-                cout<<"Wyslalem: "<<msg[j]<<endl;
+                //message = logic(car[i]);   //wykonaj poruszanie sie gracza i-tego
+
+                //-------logika gry
+                string msg2;
+                moving(car[i]);
+                bool checkpointReached = car[i].checkpointReached();
+                vec3 position = car[i].getPosition();
+                float wheelRotation = car[i].getWheelRotation();
+                float rotation = car[i].getRotation(); 
+                msg2 = "checkPointedReached="+to_string(checkpointReached)+";";
+                msg2+= "wheelRotation="+to_string(wheelRotation)+";";
+                msg2+= "rotation="+to_string(rotation)+";";
+                msg2+= "position="+to_string(position.x);
+                msg2+= ","+to_string(position.y);
+                msg2+= ","+to_string(position.z);
+                message = &msg2[0];
+                //------
+                strncat(message, &slashn, 1);
+                write(clients_sockets[j], message, strlen(message));    //wyslij dane
+                cout<<"Wyslalem: "<<message<<endl;   //napisz  co wyslales
             }
         }
     }
@@ -236,29 +274,36 @@ void *ThreadBehavior(void *t_data)
     pthread_exit(NULL);
 }
 
-
-//funkcja obsługująca połączenie z nowym klientem
-void handleConnection(int clients_sockets[]) {
-    //wynik funkcji tworzącej wątek
-    int create_result = 0;
-
-    //uchwyt na wątek
-    pthread_t thread1;
-
-    //dane, które zostaną przekazane do wątku
-    struct thread_data_t *t_data;
-    for(int i = 0; i< AMOUNT_OF_PLAYERS; i++)
-    {
-        t_data->clients_sockets[i] = clients_sockets[i];
-    }
-    create_result = pthread_create(&thread1, NULL, ThreadBehavior, (void *)t_data);
+//sprawdzenie czy udalo sie utworzyc watek i reakcja na to
+void check_thread(int &create_result)
+{
     if (create_result){
        printf("Błąd przy próbie utworzenia wątku, kod błędu: %d\n", create_result);
        exit(-1);
     }
-    //TODO (przy zadaniu 1) odbieranie -> wyświetlanie albo klawiatura -> wysyłanie
 }
 
+//funkcja obsługująca połączenie z nowym klientem
+void handleConnection(int clients_sockets[]) {
+    cout<<"Wszedlem do handleConnection"<<endl;
+    //wynik funkcji tworzącej wątek
+    int create_result = 0;
+
+    //uchwyt na wątek
+    pthread_t thread;
+
+    //struktura ktorej dane zostaną przekazane do wątku (sockety klientow)
+    struct thread_data_t *t_data;
+    
+    //wypelnienie powyzszych danych
+    for(int i = 0; i< AMOUNT_OF_PLAYERS; i++)
+    {
+        t_data->clients_sockets[i] = clients_sockets[i];
+    }
+    create_result = pthread_create(&thread, NULL, ThreadBehavior, (void *)t_data);
+    
+    check_thread(create_result);    //sprawdzenie czy udalo sie utworzyc watek
+}
 
 //inicjalizacja serwera
 void initializeServer(int &server_socket_descriptor, int &bind_result, int &listen_result, char &reuse_addr_val, struct sockaddr_in &server_address)
@@ -313,6 +358,7 @@ void makeMinusOne(int clients_sockets[])
     
 }
 
+
 int main()
 {
     //takie tam gowienka do dzialania serwera
@@ -323,13 +369,13 @@ int main()
     char reuse_addr_val = 1;
     struct sockaddr_in server_address;
     
-    int clients_sockets[AMOUNT_OF_PLAYERS];
+    int clients_sockets[AMOUNT_OF_PLAYERS]; //tablica klientow w danej grze
     
     initializeServer(server_socket_descriptor, bind_result, listen_result, reuse_addr_val, server_address);  //jak nazwa wskazuje
-   
+
     while(1) //Petla glowna programu
     {
-        makeMinusOne(clients_sockets);
+        makeMinusOne(clients_sockets);  //ustaw tablicę klientów na -1
         
         for(int i = 0; i < AMOUNT_OF_PLAYERS; i++) //dla kazdego gracza ktory bedzie w jednym wyscigu
         {
@@ -338,7 +384,17 @@ int main()
             check_client(connection_socket_descriptor);  //sprawdz utworzenie gniazda, jesli cos poszlo nie tak wylacz program, malo prawdp sytuacja
 
             clients_sockets[i] = connection_socket_descriptor;  //dodaj gniazdo do tablicy
-            cout<<"Klient "<<clients_sockets[i]<<" dolaczyl do wspaniej gry RacingGame! Witamy na pokladzie ;D :*"<<endl;
+
+            char *message = new char[AMOUNT_OF_CHAR_IN_MSG];
+            //sprintf(message, "%i", i);
+            strcpy(message, "client");
+            char slashn = '\n';
+            strncat(message, &slashn, 1);
+            cout<<"Wysyłam: "<<message<<endl;
+            write(clients_sockets[i], message, strlen(message)); //wyslij graczowi ktory jest
+
+            cout<<"Klient "<<clients_sockets[i]<<" dolaczyl do wspaniej gry RacingGame! Witamy na pokladzie ;D"<<endl;
+        
         }
         
         handleConnection(clients_sockets); //wyslij tablicę
