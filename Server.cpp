@@ -15,7 +15,7 @@
 #include <pthread.h>
 #include <iostream>
 #include <cstring>
-
+#include <sstream>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -25,7 +25,7 @@
 #include "Car.h"
 using namespace std;
 using namespace glm;
-#define SERVER_PORT 50027
+#define SERVER_PORT 50053
 #define QUEUE_SIZE 5
 const int AMOUNT_OF_CHAR_IN_MSG = 256;
 const int AMOUNT_OF_PLAYERS = 2;
@@ -120,29 +120,29 @@ void turning(Car &player)
 }
 
 //skrecanie kol
-//wymaga turnWheel, getWheelRotation
-void turningWheels(Car &player)
-{
-    if (turnLeft)
-        {
-            player.turnWheelLeft();
-        }
-        if (turnRight)
-        {
-            player.turnWheelRight();
-        }
-        if (!turnLeft && !turnRight)  //prostuj ko³a
-        {
-            if (player.getWheelRotation() > 0)
-            {
-                player.turnWheelRight();
-            }
-            if (player.getWheelRotation() < 0)
-            {
-                player.turnWheelLeft();
-            }
-        }
-}
+// //wymaga turnWheel, getWheelRotation
+// void turningWheels(Car &player)
+// {
+//     if (turnLeft)
+//         {
+//             player.turnWheelLeft();
+//         }
+//         if (turnRight)
+//         {
+//             player.turnWheelRight();
+//         }
+//         if (!turnLeft && !turnRight)  //prostuj ko³a
+//         {
+//             if (player.getWheelRotation() > 0)
+//             {
+//                 player.turnWheelRight();
+//             }
+//             if (player.getWheelRotation() < 0)
+//             {
+//                 player.turnWheelLeft();
+//             }
+//         }
+// }
 
 //poruszanie przod, tyl
 //wymaga move
@@ -165,7 +165,7 @@ void going(Car &player)
 void moving(Car &player)
 {
     turning(player);
-    turningWheels(player);
+    //turningWheels(player);
     going(player);
 }
 
@@ -179,12 +179,12 @@ char * logic(Car &player)
     vec3 position = player.getPosition();
     float wheelRotation = player.getWheelRotation();
     float rotation = player.getRotation(); 
-    msg = "checkPointedReached"+to_string(checkpointReached)+";";
-    msg+= "wheelRotation="+to_string(wheelRotation)+";";
-    msg+= "rotation="+to_string(rotation)+";";
-    msg+= "position="+to_string(position.x);
-    msg+= ","+to_string(position.y);
-    msg+= ","+to_string(position.z);
+    msg = to_string(checkpointReached)+" ";                 //checkPointedReached
+    //msg+= to_string(wheelRotation)+" ";                     //wheelRotation
+    msg+= to_string(rotation)+" ";                          //rotation
+    msg+= to_string(position.x)+" ";                        //pos.x
+    msg+= to_string(position.y)+" ";                        //pos.y
+    msg+= to_string(position.z) +" ";                       //pos.z
     char * returningValue = &msg[0];
     cout<<"Wychodze z logic, zwracam: "<<returningValue<<endl;
     return returningValue;
@@ -196,10 +196,22 @@ char * getMessage(int fd)
     char *msg = new char[AMOUNT_OF_CHAR_IN_MSG]; 
     char oneChar;
     int i = 0;
-    read(fd, &oneChar, 1);
+    int size = 0;
+    size = read(fd, &oneChar, 1);
+    if (size == 0)  //jesli klient sie rozlaczyl
+    {
+        strcpy(msg, "the end");
+        return msg;
+    }
+    
     while (oneChar != '\n') {
         msg[i++] = oneChar;
-        read(fd, &oneChar, 1);
+        size = read(fd, &oneChar, 1);
+        if (size == 0)  //jesli klient sie rozlaczyl
+        {
+            strcpy(msg, "the end");
+            return msg;
+        }
     }
     return msg;
     
@@ -245,28 +257,37 @@ void *ThreadBehavior(void *t_data)
         {
             checkMessage(msg[i]);   //uzupelnij zmienne booloweskie
 
-            for(int j = 0; j< AMOUNT_OF_PLAYERS; j++)   //wyslij j-temu graczowi info o graczu i-tym
-            {
-                //message = logic(car[i]);   //wykonaj poruszanie sie gracza i-tego
-
-                //-------logika gry
+            //logika gry
+                //---------------------------------
                 string msg2;
                 moving(car[i]);
                 bool checkpointReached = car[i].checkpointReached();
                 vec3 position = car[i].getPosition();
                 float wheelRotation = car[i].getWheelRotation();
                 float rotation = car[i].getRotation(); 
-                msg2 = "checkPointedReached="+to_string(checkpointReached)+";";
-                msg2+= "wheelRotation="+to_string(wheelRotation)+";";
-                msg2+= "rotation="+to_string(rotation)+";";
-                msg2+= "position="+to_string(position.x);
-                msg2+= ","+to_string(position.y);
-                msg2+= ","+to_string(position.z);
+                if (checkpointReached)
+                {
+                    msg2 = "1 ";
+                } else
+                {
+                    msg2 = "0 ";
+                }
+                
+                //msg2 = to_string(checkpointReached)+" ";
+                //msg2+= "wheelRotation="+to_string(wheelRotation)+";";
+                msg2 += to_string(rotation)+" ";
+                msg2 += to_string(position.x) + " ";
+                msg2 += to_string(position.y) + " ";
+                msg2 += to_string(position.z);
                 message = &msg2[0];
-                //------
+                //---------------------------------
                 strncat(message, &slashn, 1);
+
+            for(int j = 0; j< AMOUNT_OF_PLAYERS; j++)   //wyslij j-temu graczowi info o graczu i-tym
+            {
                 write(clients_sockets[j], message, strlen(message));    //wyslij dane
                 cout<<"Wyslalem: "<<message<<endl;   //napisz  co wyslales
+                
             }
         }
     }
@@ -359,6 +380,8 @@ void makeMinusOne(int clients_sockets[])
 }
 
 
+
+
 int main()
 {
     //takie tam gowienka do dzialania serwera
@@ -380,14 +403,14 @@ int main()
         for(int i = 0; i < AMOUNT_OF_PLAYERS; i++) //dla kazdego gracza ktory bedzie w jednym wyscigu
         {
             connection_socket_descriptor = accept(server_socket_descriptor, NULL, NULL); //Nowy klient przyszedl
-            
+            cout<<"Zaakceptowano nowego klienta"<<endl;
             check_client(connection_socket_descriptor);  //sprawdz utworzenie gniazda, jesli cos poszlo nie tak wylacz program, malo prawdp sytuacja
 
             clients_sockets[i] = connection_socket_descriptor;  //dodaj gniazdo do tablicy
 
             char *message = new char[AMOUNT_OF_CHAR_IN_MSG];
-            //sprintf(message, "%i", i);
-            strcpy(message, "client");
+            sprintf(message, "%i", i);
+            //strcpy(message, "client");
             char slashn = '\n';
             strncat(message, &slashn, 1);
             cout<<"Wysyłam: "<<message<<endl;

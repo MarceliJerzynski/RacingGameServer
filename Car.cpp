@@ -185,20 +185,14 @@ void Car::move(int going)
             temporaryPower += Power;
         else
             temporaryPower = 1;
-    }
-
-
-    else
+    } else
     if (going == 2 )
     {
         if (temporaryPower > -0.5)
             temporaryPower -= backPower;
         else
             temporaryPower = -0.5;
-    }
-
-
-    else
+    } else
     {
        temporaryPower = 0;
     }
