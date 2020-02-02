@@ -1,10 +1,11 @@
 #ifndef CAR_H
 #define CAR_H
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+//#include <GL/glew.h>
+//#include <GLFW/glfw3.h>
+//#include <glm/glm.hpp>
+//#include <glm/gtc/type_ptr.hpp>
+//#include <glm/gtc/matrix_transform.hpp>
+#include "Vec3.h"
 #include "Object.h"
 #include "Markup.h"
 //#include "shaderprogram.h"
@@ -22,7 +23,8 @@ class Car
         //Object * getBody();
         //void setV(float av);
         //float getV();
-        vec3 getPosition();
+        Vec3 getPosition();
+        void setPosition(Vec3 aposition);
         float getRotation();
         //void setRotation(float rotX, float rotY, float rotZ);
         float getWheelRotation();

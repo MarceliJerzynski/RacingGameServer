@@ -22,17 +22,18 @@ Car::Car()
     RLW =new Object();
     RRW =new Object();
     FLW =new Object();
-    //dodac pozycję! 
-    body->setPosition(vec3(25.0f,0.0f,10.0f));
-    chassis->setPosition(vec3(25.0f,0.0f,10.0f));
-    headlit->setPosition(vec3(25.0f,0.0f,10.0f));
-    license->setPosition(vec3(25.0f,0.0f,10.0f));
-    FRW ->setPosition(vec3(25.0f,0.0f,10.0f));
-    RLW ->setPosition(vec3(25.0f,0.0f,10.0f));
-    RRW ->setPosition(vec3(25.0f,0.0f,10.0f));
-    FLW ->setPosition(vec3(25.0f,0.0f,10.0f));
-
+    //cout<<"Wywoluje konstruktor..."<<endl;
+    //cout<<"Ustalam pozycję body i reszty gowien na : vec3(25.0f, 0.0f, 10.0f)"<<endl;
+    Vec3 position(25.0f, 0.0f, 10.0f);
+    setPosition(position);
+    
+    //cout<<"Pozycja poczatkowa samochodu : ";
+    //cout<<getPosition().x<<" ";
+    //cout<<getPosition().y<<" ";
+    //cout<<getPosition().z<<" ";
     body->setRotation(0,0,0);
+
+
     chassis->setRotation(0,0,0);
     headlit->setRotation(0,0,0);
     license->setRotation(0,0,0);
@@ -105,9 +106,21 @@ Car::Car()
 //     return v;
 // }
 //potrzebuje getPosition
-vec3 Car::getPosition()
+Vec3 Car::getPosition()
 {
     return body->getPosition();
+}
+
+void Car::setPosition(Vec3 aposition) 
+{
+    body->setPosition(aposition);
+    chassis->setPosition(aposition);
+    headlit->setPosition(aposition);
+    license->setPosition(aposition);
+    FRW ->setPosition(aposition);
+    RLW ->setPosition(aposition);
+    RRW ->setPosition(aposition);
+    FLW ->setPosition(aposition);
 }
 
 //potrzeba turn z Object
@@ -158,7 +171,6 @@ void Car::turnWheelRight()
 //nie potrzeba nic
 int Car::isMoving()
 {
-
 //zatrzymanie samochodu
 //----------------------------------------------------------------------------------------------------------------------
     if (v < 0.02 && v > -0.02)
@@ -180,47 +192,47 @@ void Car::move(int going)
 //going = 2 <- gracz naciska S
 //going = 0 <- gracz nie trzyma nic
 {
-    if ( going == 1 )
-    {   if (temporaryPower < 1)
-            temporaryPower += Power;
+    if ( going == 1 )                           //jesli jedzie do przodu
+    {   if (temporaryPower < 1)                 //i nie osiagnal maksymalnej predkosci
+            temporaryPower += Power;            //zwiekszaj predkosc
         else
-            temporaryPower = 1;
+            temporaryPower = 1;                 //ustaw predkosc na maksymalna
     } else
-    if (going == 2 )
+    if (going == 2 )                            //jesli cofa
     {
-        if (temporaryPower > -0.5)
-            temporaryPower -= backPower;
+        if (temporaryPower > -0.5)              //i nie osiagnal maksymalnej predkosci
+            temporaryPower -= backPower;        //zmniejsz predkosc
         else
-            temporaryPower = -0.5;
+            temporaryPower = -0.5;              //ustaw predkosc na minimalna
     } else
     {
-       temporaryPower = 0;
+       temporaryPower = 0;                      //zatrzymuj furke
     }
 
 
-    float resistance = v/3*2;
+    float resistance = v/3*2;                   //opor powietrza
     if (going == 0)
     {
-        resistance = resistance*3;
+        resistance = resistance*3;              //gdy nic nie naciska, zwieksz opor 3-krotnie
     }
 
 
-    acceleration = temporaryPower - resistance;
-    v = v + acceleration/60;
-    float s = v;
+    acceleration = temporaryPower - resistance; //przyspieszenie
+    v = v + acceleration/60;                    //predkosc
+    float s = v;        
 
     float x1,x2,y1,y2;
-    x1 = body->getPosition().x;
-    y1 = body->getPosition().z;
-    body->move(s);
+    x1 = body->getPosition().x;                 //wspolrzednia x samochodu
+    y1 = body->getPosition().z;                 //wspolrzedna y samochodu
+    body->move(s);                              //}
     chassis->move(s);
-    license->move(s);
-    headlit->move(s);
+    license->move(s);                           //przesun furke o s
+    headlit->move(s);                           //}
 
     x2 = body->getPosition().x;
     y2 = body->getPosition().z;
 
-    vec3 aposition;
+    Vec3 aposition;
     aposition.x = 0.786 * cos(-body->getRotationY()) - 1.257*sin(-body->getRotationY()) + body->getPosition().x;
     aposition.y = body->getPosition().y + 0.334;
     aposition.z = 0.786 * sin(-body->getRotationY()) + 1.257*cos(-body->getRotationY()) + body->getPosition().z;
@@ -273,6 +285,7 @@ float Car::getRotation()
 //     RRW->setRotation(rotX, rotY - 180, rotZ);
 //     RLW->setRotation(rotX, rotY, rotZ);
 // }
+
 //potrzeba getRotationyY z object
 float Car::getWheelRotation()
 {

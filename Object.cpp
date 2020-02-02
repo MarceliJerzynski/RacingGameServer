@@ -55,14 +55,18 @@ Object::Object()
 // }
 
 //potrzebne mi to jest
-vec3 Object::getPosition() //
+Vec3 Object::getPosition() //
 {
+    //cout<<"getPosition w klasie Object: "<<endl;
+    //cout<<"Position = "<<position.x<<" "<<position.y<<" "<<position.z<<endl;
     return position;
 
 }
 
-void Object::setPosition(vec3 aposition) //+
+void Object::setPosition(Vec3 &aposition) //+
 {
+    //cout<<"setPosition w klasie Object: "<<endl;
+    //cout<<"Argument aposition = "<<aposition.x<<" "<<aposition.y<<" "<<aposition.z<<endl;
     setM(aposition, rotationX, rotationY, rotationZ, scaling);
 }
 
@@ -140,8 +144,10 @@ float Object::getRotationY()
 
 
 //potrzebne mi to jest
-void Object::setM(vec3 aposition, float rotX, float rotY, float rotZ, float ascale)
+void Object::setM(Vec3 &aposition, float rotX, float rotY, float rotZ, float ascale)
 {
+    //cout<<"setM w klasie Object: "<<endl;
+    //cout<<"Position = "<<aposition.x<<" "<<aposition.y<<" "<<aposition.z<<endl;
     position = aposition;
     // M=mat4(1.0f);
     // M=translate(M, position);

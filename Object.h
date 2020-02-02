@@ -4,16 +4,17 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_SWIZZLE
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
+// #include <GL/glew.h>
+// #include <GLFW/glfw3.h>
+// #include <glm/glm.hpp>
+// #include <glm/gtc/type_ptr.hpp>
+// #include <glm/gtc/matrix_transform.hpp>
+#include "Vec3.h"
+#include <iostream>
 #include <cmath>
 //#include <vector>
 using namespace std;
-using namespace glm;
+//using namespace glm;
 class Object
 {
     public:
@@ -26,13 +27,13 @@ class Object
         //float * getColors();
         float getRotationY();
         //unsigned int getVertexCount();
-        vec3 getPosition();
-        void setPosition(vec3 aposition);
+        Vec3 getPosition();
+        void setPosition(Vec3 &aposition);
         void setRotation(float rotX, float rotY, float rotZ);
         void turn(float rot);
         void move(float dc);
         //void render(mat4 V, mat4 P, ShaderProgram *sp);
-        void setM(vec3 aposition, float rotX, float rotY, float rotZ, float scale);
+        void setM(Vec3 &aposition, float rotX, float rotY, float rotZ, float scale);
         void rotateX(float angle);
     protected:
         //GLuint readTexture(string path);
@@ -48,7 +49,7 @@ class Object
         //float *normals;
         //float *colors;
         //unsigned int vertexCount;
-        vec3 position;
+        Vec3 position;
         float rotationY;
         float rotationX;
         float rotationZ;
